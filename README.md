@@ -1,7 +1,7 @@
-# ha_352air for
+# ha_352air for M25
 
 
-- [352 PM2.5 检测仪](http://www.352air.com/jianceyi1/index.html)
+- [352 PM2.5 检测仪](https://www.352group.com.cn/info.php?id=6)
 
 
 ## Installation
