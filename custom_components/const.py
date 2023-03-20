@@ -1,4 +1,4 @@
-DEFAULT_NAME = "小米电台"
-DOMAIN = "xiaomi_radio"
+DEFAULT_NAME = "352air_M25"
+DOMAIN = "352air_M25"
 VERSION = "1.0"
-PLATFORMS = ["media_player", "remote"]
+PLATFORMS = ["352air_M25"]
