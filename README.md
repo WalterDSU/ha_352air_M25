@@ -1,6 +1,6 @@
 # ha_352air for M25
 
-
+352空气检测仪M25
 - [352 PM2.5 检测仪](https://www.352group.com.cn/info.php?id=6)
 
 
