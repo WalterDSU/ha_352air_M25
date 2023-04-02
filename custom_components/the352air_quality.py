@@ -1,98 +1,151 @@
-import socket
 import json
+import logging
+import asyncio
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.const import (
+    CONF_NAME,
+    ATTR_DEVICE_CLASS,
+)
+from homeassistant.components.sensor import (
+    SensorEntity,
+    DEVICE_CLASS_PM25,
+)
+from homeassistant.helpers.entity_registry import async_get_registry
 
-from homeassistant.helpers.entity import Entity
+_LOGGER = logging.getLogger(__name__)
 
-MULTICAST_ADDR = "233.255.255.255"
+MULTICAST_ADDR = '233.255.255.255'
 PORT_352AIR_SENSOR = 11530
 
-class The352AirQuality(Entity):
-    def __init__(self, config):
-        self._name = config.get('name', 'The 352Air Quality')
-        self._state = None
-        self._pm25 = None
-        self._mac_addr = None
-        self._ip_addr = None
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.bind(('', PORT_352AIR_SENSOR)))
-        self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(MULTICAST_ADDR) + socket.inet_aton('0.0.0.0'))
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Set up the 352Air Quality sensor platform."""
+    entities = []
+    try:
+        registry = await async_get_registry(hass)
 
-    def update(self):
-        data, _ = self._socket.recvfrom(1024)
-        buf = bytearray(data)
-        if len(buf) != 33 or buf[0] != 0xA1:
+        # Check if already added
+        if registry.async_is_registered(config['mac_addr']):
             return
-        self._ip_addr = f"{str(_[0])}:{str(_[1])}"
-        self._mac_addr = buf[2:8].hex()
-        self._pm25 = buf[19:21].hex()
-        self._state = self.calculate_air_quality()
+        new_entity = PM25Sensor(hass, config)
+        entities.append(new_entity)
+        registry.async_get_or_create(
+            SensorEntity.domain,
+            "352AirQuality",
+            config['mac_addr'],
+            suggested_object_id=config['name'],
+            device_class=DEVICE_CLASS_PM25,
+            config_entry=new_entity.config_entry,
+            device={
+                (ATTR_DEVICE_CLASS, DEVICE_CLASS_PM25),
+                (CONF_NAME, config['name'])
+            },
+            capabilities={
+                "rotatable": False
+            },
+            supported_features=0,
+        )
+    except Exception as ex:
+        _LOGGER.error("Exception while setting up 352Air sensor: %s", ex)
 
-    def calculate_air_quality(self):
-        if self._pm25 is None:
-            return None
-        density = int(self._pm25, 16)
-        if density <= 11:
-            # 0 ~ 11
-            return 'excellent'
-        elif density <= 35:
-            # 12 ~ 35
-            return 'good'
-        elif density <= 55:
-            # 36 ~ 55
-            return 'fair'
-        elif density <= 150:
-            # 56 ~ 150
-            return 'inferior'
-        else:
-            # 151 ~ 500
-            return 'poor'
+    async_add_entities(entities, True)
+
+class PM25Sensor(SensorEntity):
+    """Representation of a 352Air Quality sensor."""
+
+    def __init__(self, hass, config):
+        self.hass = hass
+        self._name = config['name']
+        self._mac_addr = config['mac_addr']
+        self._state = None
+        self._available = False
+        self._session = async_get_clientsession(hass)
+        self.result = {}
+        self._timeout = 15
 
     @property
     def name(self):
+        """Return the name of the sensor."""
         return self._name
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID for this sensor."""
+        return self._mac_addr
+
+    @property
     def state(self):
+        """Return the state of the device."""
         return self._state
 
     @property
-    def unit_of_measurement(self):
-        return 'air quality index'
+    def available(self):
+        """Return True if entity is available."""
+        return self._available
 
     @property
-    def device_state_attributes(self):
+    def device_info(self):
+        """Return information about the device."""
         return {
-            'pm25': self._pm25,
-            'ip_address': self._ip_addr,
-            'mac_address': self._mac_addr,
+            'identifiers': {(DOMAIN, self._mac_addr)},
+            'name': self._name,
+            'manufacturer': '352Air',
+            'model': 'PM2.5 Sensor',
+            'sw_version': '',
+            'entry_type': 'service',
         }
 
-    @property
-    def icon(self):
-        return 'mdi:blur-radial'
+    async def async_update(self):
+        """Get the latest data and updates the state."""
+        try:
+            transport, protocol = await asyncio.wait_for(
+                self.hass.loop.create_datagram_endpoint(
+                    lambda: _352AirProtocol(self),
+                    local_addr=('0.0.0.0', PORT_352AIR_SENSOR),
+                    family=socket.AF_INET
+                ),
+                timeout=self._timeout,
+            )
 
-    def get_air_quality_index(self):
-        return self._state
+            # Send multicast message to request data from sensors
+            msg = bytes.fromhex('A112345678000000000000007B')
+            transport.sendto(msg, (MULTICAST_ADDR, PORT_352AIR_SENSOR))
 
-    def get_pm25_density(self):
-        if self._pm25 is not None:
-            return int(self._pm25, 16)
+            # Wait for response
+            await asyncio.sleep(0.5)
 
-    def get_device_state_attributes(self):
-        attrs = {}
-        attrs['pm25'] = self._pm25
-        attrs['ip_address'] = self._ip_addr
-        attrs['mac_address'] = self._mac_addr
-        return attrs
+            # Close transport
+            transport.close()
 
-    def update_air_quality_sensor(self):
-        self.update()
-        self.schedule_update_ha_state()
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout when attempting to get data from sensor.")
+            self._available = False
+            return
 
-    def update_air_quality_callback(self, event_time):
-        self.update_air_quality_sensor()
-        self.hass.helpers.event.async_call_later(120, self.update_air_quality_callback, None)
+        except Exception as ex:
+            _LOGGER.error("Exception during communication with 352Air sensor: %s", ex)
+            self._available = False
+            return
 
-    def setup_platform(hass, config, add_entities, discovery_info=None):
-        add_entities([The352AirQuality(config)], True)
+        # Update state
+        if self.result:
+            pm25 = self.result.get('pm25')
+            self._state = pm25
+            self._available = True
+
+class _352AirProtocol(asyncio.DatagramProtocol):
+
+    def __init__(self, entity):
+        self.entity = entity
+
+    def datagram_received(self, data, addr):
+        """Handle incoming UDP packets."""
+        buf = bytearray(data)
+        if not buf or buf[0] != 0xA1 or len(buf) != 33:
+            return
+
+        ip_addr = f"{addr[0]}:{addr[1]}"
+        mac_addr = buf[2:8].hex()
+        pm25 = int.from_bytes(buf[19:21], byteorder='big')
+
+        self.entity.result = {
+            'pm25': pm25
