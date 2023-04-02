@@ -149,3 +149,4 @@ class _352AirProtocol(asyncio.DatagramProtocol):
 
         self.entity.result = {
             'pm25': pm25
+    }
