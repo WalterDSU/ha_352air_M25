@@ -30,7 +30,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         entities.append(new_entity)
         registry.async_get_or_create(
             SensorEntity.domain,
-            "352AirQuality",
+            "352air_M25",
             config['mac_addr'],
             suggested_object_id=config['name'],
             device_class=DEVICE_CLASS_PM25,
@@ -89,7 +89,7 @@ class PM25Sensor(SensorEntity):
             'identifiers': {(DOMAIN, self._mac_addr)},
             'name': self._name,
             'manufacturer': '352Air',
-            'model': 'PM2.5 Sensor',
+            'model': 'M25',
             'sw_version': '',
             'entry_type': 'service',
         }
