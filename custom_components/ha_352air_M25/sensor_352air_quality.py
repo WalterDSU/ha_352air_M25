@@ -19,7 +19,7 @@ import voluptuous as vol
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = "sensor_352air_quality"
+DOMAIN = "352air_M25"
 
 MULTICAST_ADDR = "233.255.255.255"
 PORT_352AIR_SENSOR = 11530
@@ -106,7 +106,7 @@ class PM25Sensor(SensorEntity):
             'identifiers': {(DOMAIN, self._mac_addr)},
             'name': self._name,
             'manufacturer': '352Air',
-            'model': 'PM2.5 Sensor',
+            'model': 'M25',
             'sw_version': '',
             'entry_type': 'service',
         }
