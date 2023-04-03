@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_registry import async_get_registry
 
 from .const import DOMAIN
+from .sensor import _352AirDataUpdateCoordinator, _352AirSensor
 
 _LOGGER = logging.getLogger(__name__)
 
