@@ -152,3 +152,9 @@ class _352AirProtocol(asyncio.DatagramProtocol):
         """Receive incoming datagrams and parse them."""
         if len(data) != 33 or data[0] != 0xA1:
             return
+    mac_addr = data[2:8].hex().upper()
+    if mac_addr != self.coordinator._mac_addr:
+        return
+
+    pm25 = int.from_bytes(data[19:21], byteorder="big")
+    self.coordinator.result = {"pm25": pm25}
