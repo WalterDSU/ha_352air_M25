@@ -1,11 +1,12 @@
 {
     "domain": "352air_M25",
-    "name": "352air for M25",
+    "name": "352Air M25 Sensor",
     "version": "0.0.1",
-    "config_flow": true,
-    "documentation": "https://github.com/WalterDSU/ha_352air_M25",
+    "config_flow": false,
+    "documentation": "https://github.com/example_user/ha_352air_pm25/blob/main/README.md",
     "dependencies": [],
     "requirements": [],
     "codeowners": ["@WalterDSU"],
     "iot_class": "local_polling"
+
 }
