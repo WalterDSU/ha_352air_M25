@@ -16,7 +16,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
-
+from datetime import timedelta
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
