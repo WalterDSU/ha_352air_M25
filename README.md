@@ -7,5 +7,6 @@
 
 本来打算做一个集成的, 但是能力有限, 没弄好. 后来发现, 原来HA里面, Node Red可以接UDP的信息, 就先用NR来接入了.
 有兴趣的朋友,可以先用NR接入, 后面, 再考虑用集成吧. NR比较简单, flow文件在[上面](https://github.com/WalterDSU/ha_352air_M25/blob/main/352air_m25_flows.json).
-![QQ截图20230413145302](https://user-images.githubusercontent.com/91654066/231677748-69526b2c-09ac-4971-aa21-6b99d6d80a6c.jpg)
+![QQ截图20230418132118](https://user-images.githubusercontent.com/91654066/232678522-6df352a2-b01c-4333-9853-4e7021d37084.jpg)
+
 
